@@ -5,8 +5,10 @@
 Lexis is an s-expression document format and a Common Lisp library for
 processing it. Documents are written as nested s-expressions using a
 semantic tag vocabulary — `section`, `paragraph`, `emphasis`, `code-block`
-— rather than HTML elements. The library parses these into a CLOS object
-tree and renders them to HTML via Spinneret.
+— rather than HTML elements. The core Lexis library converts these
+expressions into CLOS objects, which may then be rendered into a variety
+of output formats. Currently implemented is an HTML renderer using the
+Spinneret library.
 
 Lexis is designed as a data format. A Lexis document is a valid Common Lisp
 s-expression that can be read with `cl:read`, stored as a file, embedded in
@@ -283,4 +285,4 @@ expected to evolve.
 
 ## License
 
-TBD
+BSD-3
