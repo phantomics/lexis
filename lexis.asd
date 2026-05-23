@@ -7,7 +7,7 @@
 (asdf:defsystem "lexis"
   :description "Lisp EXpressions as Interchange Syntax — s-expression document format"
   :version "0.1.0"
-  :license "TBD"
+  :license "BSD-3"
   :depends-on ("cl-ppcre")
   :pathname "src/"
   :serial t

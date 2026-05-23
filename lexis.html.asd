@@ -6,7 +6,7 @@
 (asdf:defsystem "lexis.html"
   :description "Lexis HTML renderer via Spinneret"
   :version "0.1.0"
-  :license "TBD"
+  :license "BSD-3"
   :depends-on ("lexis" "spinneret")
   :pathname "src/html/"
   :serial t
