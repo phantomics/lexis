@@ -69,6 +69,12 @@
    #:lexis-cross-ref
    #:cross-ref-target
 
+   ;; ---- Medium-dependent passthrough ----
+   #:lexis-passthrough
+   #:passthrough-content
+   #:passthrough-targets
+   #:passthrough-applies-p
+
    ;; ---- Unknown/extension tags ----
    #:lexis-unknown-element
 

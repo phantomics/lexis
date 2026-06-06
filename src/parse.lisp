@@ -44,7 +44,9 @@ Returns 'lexis-unknown-element if not registered."
    strikethrough   lexis-strikethrough
    web-link        lexis-web-link
    classic-link    lexis-classic-link
-   cross-ref       lexis-cross-ref))
+   cross-ref       lexis-cross-ref
+   passthrough     lexis-passthrough
+   pthru           lexis-passthrough))
 
 ;;; ============================================================
 ;;; Parsing
@@ -59,8 +61,22 @@ based on the tag registry. Returns a lexis-node."))
   "Strings become text nodes."
   (make-instance 'lexis-text-node :text form))
 
+(defun raw-children-tag-p (tag)
+  "Return T when TAG identifies an element whose children must NOT be
+recursively parsed as Lexis nodes (the children are preserved verbatim
+in the resulting node's raw-content slot).
+At present this covers the PASSTHROUGH tag (and its PTHRU nickname),
+whose children are opaque target-native s-expressions or strings."
+  (and (symbolp tag)
+       (let ((name (symbol-name tag)))
+         (or (string= "PASSTHROUGH" name)
+             (string= "PTHRU" name)))))
+
 (defmethod parse-node ((form cons))
-  "Lists are parsed as tagged elements: (tag [(@attrs...)] children...)"
+  "Lists are parsed as tagged elements: (tag [(@attrs...)] children...).
+For tags identified by RAW-CHILDREN-TAG-P, children are captured
+verbatim into the resulting node's raw-content slot instead of being
+recursively parsed as Lexis nodes."
   (multiple-value-bind (tag attrs children)
       (extract-tag-parts form)
     (unless (symbolp tag)
@@ -70,10 +86,18 @@ based on the tag registry. Returns a lexis-node."))
     (let ((class (tag->class tag)))
       (when (eq class 'lexis-unknown-element)
         (warn 'unknown-tag-warning :tag tag))
-      (let ((node (make-instance class
-                                 :tag tag
-                                 :attrs attrs
-                                 :children (mapcar #'parse-node children))))
+      (let ((node (if (raw-children-tag-p tag)
+                      ;; Passthrough-style: preserve children verbatim
+                      (make-instance class
+                                     :tag tag
+                                     :attrs attrs
+                                     :raw-content (copy-list children)
+                                     :children nil)
+                      ;; Standard: recursively parse children
+                      (make-instance class
+                                     :tag tag
+                                     :attrs attrs
+                                     :children (mapcar #'parse-node children)))))
         ;; Post-processing for specific types
         (post-parse-node node)
         node))))

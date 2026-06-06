@@ -605,6 +605,122 @@ The prefix identifies the extension. Processors that do not understand
 a namespace prefix ignore those attributes. Core attributes have no
 prefix.
 
+### 5.4 Medium-Dependent Passthrough
+
+Some forms of content have no meaningful representation outside a
+specific rendering target. HTML stylesheets and scripts, LaTeX preamble
+commands, terminal escape sequences, JSON-LD blocks for SEO, RSS
+channel metadata — each is intelligible only to its native medium and
+opaque to every other. Inventing core tags for each such case would
+pollute the semantic vocabulary with rendering-target concerns.
+
+Lexis handles these cases with a single general mechanism: the
+**passthrough** tag. A passthrough node carries opaque verbatim content
+tagged for one or more specific media. Renderers for matching media
+emit the content as-is; renderers for non-matching media silently
+omit it.
+
+```
+(passthrough (@ :medium target-spec [extra-attrs]*)
+  content*)
+
+target-spec := keyword | (keyword+)
+content     := string | target-native-form
+```
+
+The `:medium` attribute identifies the target media this content is
+intended for. Its value is either a single keyword (`:html`, `:latex`,
+`:terminal`, `:markdown`, `:pdf`, `:epub`, …) or a list of keywords for
+content valid in more than one target. The set of recognized medium
+keywords is an open registry shared between document authors and
+renderer implementations; conventional values match the renderer
+designators used in the multi-target rendering protocol.
+
+The children of a passthrough form are **not** parsed as Lexis nodes.
+They are preserved verbatim and handed to the matching renderer in
+whatever form the medium expects:
+
+- **Strings** are emitted by the renderer without escaping or
+  transformation. The author is responsible for any encoding the
+  target medium requires.
+
+- **S-expressions** are interpreted by the renderer in its native
+  convention. For the HTML renderer, this means Spinneret-style
+  `(:tag ...)` forms.
+
+Examples:
+
+```lisp
+;; HTML stylesheet link via Spinneret form
+(passthrough (@ :medium :html)
+  (:link :rel "stylesheet" :href "main.css"))
+
+;; HTML script with attributes
+(passthrough (@ :medium :html)
+  (:script :src "app.js" :defer t))
+
+;; Inline HTML as a raw string
+(passthrough (@ :medium :html)
+  "<meta name=\"viewport\" content=\"width=device-width\">")
+
+;; LaTeX preamble line (ignored by non-LaTeX renderers)
+(passthrough (@ :medium :latex)
+  "\\usepackage{amsmath}")
+
+;; Content valid in multiple media
+(passthrough (@ :medium (:html :epub))
+  (:link :rel "stylesheet" :href "common.css"))
+
+;; Passthrough at an inline position within text
+(paragraph "The value of " (code "x") " is "
+  (passthrough (@ :medium :html)
+    (:output :id "x-val" "42"))
+  " in the current example.")
+```
+
+A passthrough node may carry additional attributes beyond `:medium`.
+These have no defined meaning in the core specification but may be
+used by individual renderers as hints. Common conventions include:
+
+- `:kind` — a semantic category (`:stylesheet`, `:script`, `:metadata`,
+  `:asset`) that a renderer may use for placement or grouping decisions.
+- `:placement` — a rendering position hint (`:head`, `:body`, `:inline`).
+- `:priority` — an ordering hint where assets compete for placement.
+
+Renderers that do not recognize a hint ignore it. The passthrough still
+renders verbatim at its document position by default.
+
+**Text processing.** Passthrough content bypasses the inline-markup
+expansion pass (Section 3). Asterisks, brackets, backticks and other
+characters that would normally signal inline patterns are preserved
+exactly as written. This is essential for stylesheet bodies, script
+sources, and any other content where those characters carry their own
+medium-specific meaning.
+
+**Aliases.** Processors may accept `pthru` as a synonym for
+`passthrough`. Both parse to the same node type.
+
+**Security.** Passthrough content is, by design, opaque content that
+the renderer emits without interpretation. Authors and processors must
+treat passthrough nodes from untrusted sources with the same care they
+would extend to raw HTML, raw shell commands, or raw any-other-medium
+content. Renderers serving multi-tenant or user-generated documents
+should consider stripping passthrough nodes outright, sandboxing the
+target medium, or applying medium-specific content sanitization before
+emission.
+
+**Conformance.** A conforming processor must:
+
+- Recognize the `passthrough` tag (and the `pthru` alias).
+- Preserve passthrough children verbatim without recursive Lexis parsing.
+- Skip inline-markup processing within passthrough content.
+
+A conforming renderer must:
+
+- Examine the `:medium` attribute and emit passthrough content
+  verbatim if and only if the renderer's target medium is listed.
+- Omit (with no visible output) passthrough nodes targeting other media.
+
 
 ## 6. Classic Integration
 
@@ -1215,6 +1331,7 @@ A conforming Lexis renderer:
 | `row` | Table | `cell` | `:header` |
 | `cell` | Table | Inline/Block | `:colspan`, `:rowspan`, `:header` |
 | `note` | Inline | Inline/Block | `:id`, `:kind` |
+| `passthrough` | Extension | Verbatim (target-native) | `:medium`, `:kind`, `:placement` |
 
 
 ## Appendix B: Inline Markup Summary
