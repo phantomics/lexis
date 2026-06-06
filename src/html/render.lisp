@@ -189,6 +189,52 @@ Converts classic: URI scheme to https:// via standard mapping."
          ,@(render-children node))))
 
 ;;; ============================================================
+;;; Medium-dependent passthrough
+;;; ============================================================
+
+(defparameter *html-medium-keywords* '(:html :html5)
+  "Medium keywords recognized as targeting HTML output. A passthrough
+node whose :medium attribute names any of these (directly or in a
+list) is emitted by the HTML renderer. Other passthrough nodes are
+omitted from HTML output.")
+
+(defun html-medium-match-p (targets)
+  "Return T if TARGETS (a list of medium keywords) includes any HTML
+target known to this renderer."
+  (loop for kw in targets
+        thereis (member kw *html-medium-keywords*)))
+
+(defun passthrough-item-to-tree (item)
+  "Convert one passthrough content item to a Spinneret tree form.
+Strings become (:raw ...) for unescaped emission; lists are returned
+as-is and interpreted as native Spinneret HTML forms; other atoms
+are coerced to strings via PRINC-TO-STRING and wrapped with (:raw ...)."
+  (etypecase item
+    (string `(:raw ,item))
+    (cons item)
+    (atom `(:raw ,(princ-to-string item)))))
+
+(defmethod render-html-tree ((node lexis-passthrough))
+  "Render a passthrough node by emitting its verbatim content if the
+node's :medium attribute targets HTML; otherwise return NIL (the
+node contributes nothing to HTML output).
+
+Content semantics:
+- A single string is emitted as raw HTML.
+- A single list is treated as a native Spinneret form and passed through.
+- Multiple items are spliced at the parent level via the :LEXIS-SPLICE
+  sentinel, which RENDER-CHILDREN recognizes and unrolls."
+  (when (html-medium-match-p (passthrough-targets node))
+    (let ((items (passthrough-content node)))
+      (cond
+        ((null items) nil)
+        ((null (rest items))
+         (passthrough-item-to-tree (first items)))
+        (t
+         `(:lexis-splice
+           ,@(mapcar #'passthrough-item-to-tree items)))))))
+
+;;; ============================================================
 ;;; Unknown/extension tags — pass-through rendering
 ;;; ============================================================
 
@@ -204,12 +250,22 @@ Converts classic: URI scheme to https:// via standard mapping."
 ;;; ============================================================
 
 (defun render-children (node)
-  "Render all children of NODE, returning a list of HTML tree forms.
-Filters out empty strings."
+  "Render all children of NODE, returning a list of HTML tree forms
+suitable for splicing into a parent form. NIL results are filtered
+out (e.g. passthrough nodes targeting non-HTML media).
+
+A child rendering to (:LEXIS-SPLICE form1 form2 ...) is treated as a
+fragment: its component forms are spliced at the parent's level
+rather than nested under a single child position. This supports
+multi-item passthrough rendering without introducing a wrapper
+element."
   (loop for child in (node-children node)
         for rendered = (render-html-tree child)
         when rendered
-          collect rendered))
+          if (and (consp rendered) (eq :lexis-splice (car rendered)))
+            nconc (copy-list (cdr rendered))
+          else
+            collect rendered))
 
 (defun render-children-as-text (node)
   "Concatenate all text content of NODE's children into a single string.

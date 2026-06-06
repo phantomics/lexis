@@ -184,6 +184,59 @@ Non-Classic renderers treat this as a plain hyperlink."))
   (get-attr node :target))
 
 ;;; ============================================================
+;;; Medium-dependent passthrough
+;;; ============================================================
+
+(defclass lexis-passthrough (lexis-element)
+  ((raw-content
+    :accessor passthrough-content
+    :initarg :raw-content
+    :initform nil
+    :type list
+    :documentation "Verbatim child forms preserved without recursive
+Lexis parsing. Elements may be strings (emitted raw by the renderer)
+or target-native s-expressions (e.g. Spinneret (:tag ...) forms for
+the HTML medium)."))
+  (:default-initargs :tag 'passthrough)
+  (:documentation "Medium-dependent verbatim content.
+
+A passthrough node carries opaque content intended for one or more
+specific rendering targets, identified by the :medium attribute.
+Renderers for matching media emit the content verbatim; renderers for
+other media skip the node silently.
+
+This is the canonical extension mechanism for target-specific output
+that has no semantic equivalent in other media — HTML stylesheets and
+scripts, LaTeX preamble commands, terminal escape sequences, JSON-LD
+blocks for SEO, RSS channel metadata, and so on.
+
+Attributes:
+- :medium (keyword or list of keywords) — target medium designator(s).
+  Common values: :html, :markdown, :latex, :terminal, :pdf, :epub.
+  May also carry renderer-specific metadata attributes (:placement,
+  :kind, :priority, etc.) that hosting renderers may interpret.
+
+The children of a passthrough form are NOT parsed as Lexis nodes;
+they are preserved in the raw-content slot and handed verbatim to
+matching renderers."))
+
+(defmethod passthrough-targets ((node lexis-passthrough))
+  "Return the list of target medium keywords for this passthrough node.
+A single-keyword :medium value is wrapped into a single-element list.
+Returns NIL if no :medium attribute is present."
+  (let ((value (get-attr node :medium)))
+    (etypecase value
+      (null nil)
+      (keyword (list value))
+      (list value))))
+
+(defmethod passthrough-applies-p ((node lexis-passthrough) medium)
+  "Return T if NODE's :medium attribute names MEDIUM as a target."
+  (and (keywordp medium)
+       (member medium (passthrough-targets node))
+       t))
+
+;;; ============================================================
 ;;; Unknown/extension tags
 ;;; ============================================================
 

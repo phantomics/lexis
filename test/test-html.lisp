@@ -184,3 +184,109 @@
     (is (search "<title>" html))
     (is (search "Test" html))
     (is (search "<body>" html))))
+
+;;; ============================================================
+;;; Passthrough rendering
+;;; ============================================================
+
+(test render-passthrough-spinneret-form
+  "A passthrough targeting :html with a single Spinneret form renders
+that form verbatim into the output."
+  (let* ((node (parse-node '(passthrough (@ :medium :html)
+                             (:link :rel "stylesheet" :href "style.css"))))
+         (tree (render-html-tree node)))
+    (is (eq :link (first tree)))
+    (is (string= "stylesheet" (getf (cdr tree) :rel)))
+    (is (string= "style.css" (getf (cdr tree) :href)))))
+
+(test render-passthrough-string-content
+  "A passthrough with a single string child emits it as raw HTML
+via (:raw ...)."
+  (let* ((node (parse-node '(passthrough (@ :medium :html)
+                             "<meta name=\"viewport\" content=\"x\">")))
+         (tree (render-html-tree node)))
+    (is (eq :raw (first tree)))
+    (is (string= "<meta name=\"viewport\" content=\"x\">" (second tree)))))
+
+(test render-passthrough-non-matching-medium
+  "A passthrough whose :medium does not include an HTML target renders
+to NIL (and contributes nothing to the parent)."
+  (let* ((node (parse-node '(passthrough (@ :medium :latex)
+                             "\\usepackage{amsmath}")))
+         (tree (render-html-tree node)))
+    (is (null tree))))
+
+(test render-passthrough-multi-target-includes-html
+  "A passthrough targeting multiple media including :html does render
+to HTML."
+  (let* ((node (parse-node '(passthrough (@ :medium (:html :epub))
+                             (:link :rel "stylesheet" :href "s.css"))))
+         (tree (render-html-tree node)))
+    (is (eq :link (first tree)))))
+
+(test render-passthrough-in-document
+  "A passthrough inside a document renders into the document output."
+  (let ((html (render-html
+               '(document (@ :title "Test")
+                 (passthrough (@ :medium :html)
+                   "<style>.note { color: red; }</style>")
+                 (paragraph "Body.")))))
+    (is (search "<style>.note { color: red; }</style>" html))
+    (is (search "<p>" html))))
+
+(test render-passthrough-non-html-is-omitted
+  "A non-HTML passthrough inside a document is silently omitted."
+  (let ((html (render-html
+               '(document (@ :title "Test")
+                 (passthrough (@ :medium :latex) "\\section{Foo}")
+                 (paragraph "Body.")))))
+    (is (not (search "\\section" html)))
+    (is (search "<p>" html))))
+
+(test render-passthrough-multiple-items-spliced
+  "A passthrough with multiple raw items splices them at the parent
+level (no wrapper element introduced)."
+  (let ((html (render-html
+               '(document (@ :title "Test")
+                 (passthrough (@ :medium :html)
+                   (:link :rel "stylesheet" :href "a.css")
+                   (:link :rel "stylesheet" :href "b.css"))
+                 (paragraph "Body.")))))
+    (is (search "href=a.css" html))
+    (is (search "href=b.css" html))
+    ;; No :LEXIS-SPLICE leaked into the output as a tag
+    (is (not (search "lexis-splice" html)))
+    (is (not (search "lexis_splice" html)))))
+
+(test render-passthrough-inline-position
+  "A passthrough placed in inline position (inside a paragraph) renders
+inline at its position."
+  (let ((html (render-html
+               '(document (@ :title "Test")
+                 (paragraph "Before "
+                            (passthrough (@ :medium :html)
+                              "<span class=\"hl\">marked</span>")
+                            " after.")))))
+    (is (search "Before" html))
+    (is (search "<span class=\"hl\">marked</span>" html))
+    (is (search "after." html))))
+
+(test render-passthrough-preserves-script-body
+  "Inline script content with characters that would otherwise be
+markup-expanded (asterisks, brackets, backticks) is preserved verbatim
+in the HTML output."
+  (let* ((script-body "var x = 1 * 2; // [[link]] *not markup*")
+         (html (render-html
+                `(document (@ :title "Test")
+                  (passthrough (@ :medium :html)
+                    (:script ,script-body))
+                  (paragraph "After script.")))))
+    (is (search script-body html))))
+
+(test render-passthrough-nickname-pthru
+  "The PTHRU nickname renders identically to PASSTHROUGH."
+  (let ((html (render-html
+               '(document (@ :title "Test")
+                 (pthru (@ :medium :html)
+                   "<meta charset=\"utf-8\">")))))
+    (is (search "<meta charset=\"utf-8\">" html))))

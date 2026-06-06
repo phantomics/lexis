@@ -195,6 +195,11 @@ Does not process children of code-block nodes (content is literal)."
   "Inline code is literal — no further inline markup processing."
   node)
 
+(defmethod process-text ((node lexis-passthrough))
+  "Passthrough content is opaque target-native data — never processed
+for inline markup, regardless of what characters appear in it."
+  node)
+
 (defun expand-text-children (children)
   "Given a list of child nodes, expand inline markup in any text nodes.
 Returns a new list where text nodes may have been replaced by sequences

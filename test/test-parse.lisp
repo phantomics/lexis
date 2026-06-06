@@ -119,3 +119,91 @@
     (is (typep node 'lexis-unknown-element))
     (is (eq 'custom-widget (node-tag node)))
     (is (= 1 (length (node-children node))))))
+
+;;; ============================================================
+;;; Passthrough parsing
+;;; ============================================================
+
+(test parse-passthrough-string-content
+  "Passthrough with a single string child preserves it verbatim."
+  (let ((node (parse-node '(passthrough (@ :medium :html)
+                            "<script>console.log('hi');</script>"))))
+    (is (typep node 'lexis-passthrough))
+    (is (equal '(:html) (passthrough-targets node)))
+    (is (null (node-children node)))
+    (is (= 1 (length (passthrough-content node))))
+    (is (string= "<script>console.log('hi');</script>"
+                 (first (passthrough-content node))))))
+
+(test parse-passthrough-spinneret-form
+  "Passthrough children that are Spinneret forms are preserved as lists,
+not parsed as Lexis nodes."
+  (let* ((node (parse-node '(passthrough (@ :medium :html)
+                             (:script :src "app.js" :defer t))))
+         (content (passthrough-content node)))
+    (is (typep node 'lexis-passthrough))
+    (is (= 1 (length content)))
+    ;; The child is preserved as the original list form, not as a
+    ;; lexis-unknown-element for :SCRIPT
+    (is (consp (first content)))
+    (is (eq :script (first (first content))))
+    (is (string= "app.js" (getf (rest (first content)) :src)))))
+
+(test parse-passthrough-multiple-children
+  "Multiple passthrough children are all preserved verbatim."
+  (let* ((node (parse-node '(passthrough (@ :medium :html)
+                             (:link :rel "stylesheet" :href "style.css")
+                             (:script :src "app.js"))))
+         (content (passthrough-content node)))
+    (is (= 2 (length content)))
+    (is (eq :link (first (first content))))
+    (is (eq :script (first (second content))))))
+
+(test parse-passthrough-multi-target
+  "Passthrough :medium attribute accepts a list of target keywords."
+  (let ((node (parse-node '(passthrough (@ :medium (:html :epub))
+                            (:link :rel "stylesheet" :href "style.css")))))
+    (is (equal '(:html :epub) (passthrough-targets node)))
+    (is (passthrough-applies-p node :html))
+    (is (passthrough-applies-p node :epub))
+    (is (not (passthrough-applies-p node :latex)))))
+
+(test parse-passthrough-nickname
+  "The PTHRU nickname parses to lexis-passthrough as well."
+  (let ((node (parse-node '(pthru (@ :medium :html)
+                            "<meta name=\"viewport\" content=\"width=device-width\">"))))
+    (is (typep node 'lexis-passthrough))
+    (is (equal '(:html) (passthrough-targets node)))
+    (is (= 1 (length (passthrough-content node))))))
+
+(test parse-passthrough-metadata-attrs
+  "Passthrough nodes may carry arbitrary metadata attributes alongside :medium."
+  (let ((node (parse-node '(passthrough (@ :medium :html
+                                           :kind :stylesheet
+                                           :placement :head)
+                            (:link :rel "stylesheet" :href "style.css")))))
+    (is (typep node 'lexis-passthrough))
+    (is (eq :stylesheet (get-attr node :kind)))
+    (is (eq :head (get-attr node :placement)))))
+
+(test parse-passthrough-no-medium
+  "Passthrough without :medium has empty target list and applies to no medium."
+  (let ((node (parse-node '(passthrough "<!-- no target -->"))))
+    (is (null (passthrough-targets node)))
+    (is (not (passthrough-applies-p node :html)))))
+
+(test parse-passthrough-children-not-walked
+  "Tokens inside passthrough content that look like Lexis tags are NOT
+recursively parsed (no warnings, no element instances)."
+  ;; If children were walked, :SCRIPT would trigger an unknown-tag-warning
+  ;; for the keyword. Capture warnings and assert none was emitted for
+  ;; passthrough's interior.
+  (let ((unknown-warnings '()))
+    (handler-bind ((unknown-tag-warning
+                     (lambda (w)
+                       (push (unknown-tag-warning-tag w) unknown-warnings)
+                       (muffle-warning w))))
+      (parse-node '(passthrough (@ :medium :html)
+                    (:script "var x = 1;")
+                    (:link :rel "stylesheet" :href "s.css"))))
+    (is (null unknown-warnings))))

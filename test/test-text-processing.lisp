@@ -121,3 +121,20 @@
     (is (typep (first children) 'lexis-text-node))
     (is (string= "This has *asterisks* but no emphasis."
                  (node-text (first children))))))
+
+(test process-text-passthrough-literal
+  "process-text does not expand markup inside passthrough content.
+Inline-markup characters in stylesheet/script bodies must be preserved
+verbatim — emphasis (*), strong (**), link brackets ([[ ]]) and
+backticks must all survive untouched."
+  (let* ((css "body { font-style: *italic*; content: '[[link]]'; }")
+         (doc (parse-document `(document (@ :title "Test")
+                                 (passthrough (@ :medium :html) ,css))))
+         (processed (process-text doc))
+         (pt (first (node-children processed))))
+    (is (typep pt 'lexis-passthrough))
+    ;; Raw content is unchanged
+    (is (= 1 (length (passthrough-content pt))))
+    (is (string= css (first (passthrough-content pt))))
+    ;; Children remain empty (content is in raw-content, not children)
+    (is (null (node-children pt)))))
