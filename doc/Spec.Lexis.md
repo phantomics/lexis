@@ -1,13 +1,24 @@
-# Lexis: Lisp EXpressions as Interchange Syntax
+---
+id:            LEXIS-DRAFT-lexis
+title:         Lexis Document Format Specification
+genre:         Spec
+scope:         project
+project:       Lexis
+language:      en
+status:        Draft
+schema-version: "0.1"
+provenance:
+  assistant:     claude-opus-5-5
+  session:       ses_1adfe7ad9ffeXhdMKb49yDBuUQ
+  migrated-from: doc/spec.md@9ebd54f
+---
 
-## Document Format Specification
+# Lexis Document Format Specification
 
-**Version:** 0.1 (Draft)
-**Date:** 2026-05-22
-**Status:** Working draft
+*Lexis: Lisp EXpressions as Interchange Syntax*
 
 
-## 1. Introduction
+## 1. Overview
 
 Lexis is an s-expression document format for representing structured text
 content. It encodes document semantics -- sections, paragraphs, emphasis,
@@ -68,7 +79,7 @@ mirroring), Common Lisp nativity, and an optional extension mechanism
 for ontological enrichment.
 
 
-## 2. Core Format
+## 2. Required Core Format
 
 ### 2.1 Document Structure
 
@@ -173,7 +184,7 @@ appropriate for their output format (e.g., HTML collapses whitespace;
 a terminal renderer may preserve it).
 
 
-## 3. Inline Markup
+## 3. Required Inline Markup
 
 Text strings within Lexis documents may contain lightweight inline
 markup patterns. These are expanded by a **text processing pass** into
@@ -249,7 +260,7 @@ text nodes and inline element nodes. Processing order within a string:
 5. Strikethrough (`~~...~~`).
 
 
-## 4. Core Tag Vocabulary
+## 4. Required Tag Vocabulary
 
 The following tags constitute the core Lexis vocabulary. A conforming
 processor must understand all of these. Additional tags may be defined
@@ -551,7 +562,7 @@ section, end of document) based on `:kind` and output format.
 ```
 
 
-## 5. Extension Mechanism
+## 5. Required Extension Mechanism
 
 ### 5.1 Custom Tags
 
@@ -829,7 +840,7 @@ identity, enabling the publishing system to track the document's
 lifecycle, authorship, and federation status.
 
 
-## 7. Processing Model
+## 7. Required Processing Model
 
 A Lexis document is processed through a pipeline of passes. Not all
 passes are required -- a minimal processor may skip the text processing
@@ -980,7 +991,7 @@ fixed-width character grid. The renderer wraps text to the terminal
 width (negotiated via Telnet NAWS or SSH window-change signals) and
 uses cursor positioning for layout.
 
-Tag mappings:
+Table: Tag mappings for terminal rendering.
 
 | Tag | Terminal Rendering |
 |-----|--------------------|
@@ -1030,7 +1041,7 @@ Lexis-to-Markdown output reverses the direction of the inline markup
 processing pass: Lexis nodes are flattened back into Markdown's
 character-delimited syntax.
 
-Direct mappings:
+Table: Direct mappings from Lexis tags to Markdown.
 
 | Tag | Markdown Output |
 |-----|-----------------|
@@ -1265,7 +1276,7 @@ should follow these principles in order of preference:
 ```
 
 
-## 10. Conformance
+## 10. Required Conformance
 
 ### 10.1 Conforming Document
 
@@ -1302,6 +1313,8 @@ A conforming Lexis renderer:
 
 ## Appendix A: Core Tag Summary
 
+Table: Core tag summary.
+
 | Tag | Category | Children | Key Attributes |
 |-----|----------|----------|----------------|
 | `document` | Structure | Block | `:title`, `:author`, `:date`, `:language` |
@@ -1336,6 +1349,8 @@ A conforming Lexis renderer:
 
 ## Appendix B: Inline Markup Summary
 
+Table: Inline markup summary.
+
 | Pattern | Expansion | Notes |
 |---------|-----------|-------|
 | `[[text\|uri]]` | `web-link` or `classic-link` | URI scheme determines type |
@@ -1348,9 +1363,16 @@ A conforming Lexis renderer:
 
 ## Appendix C: Classic Extension Attributes
 
+Table: Classic extension attributes.
+
 | Attribute | Scope | Description |
 |-----------|-------|-------------|
 | `:classic:uri` | Any node | Classic resource URI |
 | `:classic:type` | Any node | Classic ontological class name |
 | `:classic:predicate` | Any node | RDF predicate relating node to context |
 | `:classic:workflow-state` | `document` | Current workflow state label |
+
+
+## Afterword: Limits
+
+Not recorded in the original.
