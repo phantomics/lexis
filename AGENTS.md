@@ -26,8 +26,8 @@ Project-specific facts the skills cannot infer:
 - Docs directory: doc/                       <!-- flat; grouping via front-matter -->
 - The `compass` command: `~/.local/bin/compass` (not on the default `PATH`)
 - Federated repositories: SEED at `../seed`, CLASSIC at `../classic`
-- Migration: `doc/spec.md` and `doc/Log.Passthrough.md` predate Compass and
-  have no front-matter; they remain as they are, and checks run with
+- Migration: `doc/Spec.Lexis.md` predates Compass and has no front-matter
+  until its migration is finished; until then, checks run with
   `--skip-unmarked`
 
 Essentials (full rules in Compass.md): every document opens with a §7 YAML

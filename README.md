@@ -253,7 +253,7 @@ sbcl --non-interactive \
 
 ## Document Format
 
-See `doc/lexis-spec.md` for the full format specification, including:
+See `doc/Spec.Lexis.md` for the full format specification, including:
 
 - Core tag vocabulary (Section 4)
 - Inline markup patterns (Section 3)

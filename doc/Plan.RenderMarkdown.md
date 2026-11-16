@@ -82,7 +82,7 @@ not account for:
    an emphasis. Lexis has no escape syntax and no way to mark text as
    literal.
 2. **Some Markdown has no Lexis tag.** Tables and definition lists are
-   specified in [the Lexis specification](spec.md) (§4.3, §4.7) but not
+   specified in [the Lexis specification](Spec.Lexis.md) (§4.3, §4.7) but not
    implemented. Horizontal rules and hard line breaks have no tag at all.
 3. **The Survey's mapping table is incomplete.** 3bmd also produces
    `:plain` (tight list items and table cells), `:verbatim` (indented
@@ -453,7 +453,7 @@ the Survey's goal of editing Compass documents through the wiki.
 ### LEXIS-DRAFT-rendermarkdown-O5 — Where the Markdown mapping is documented
 
 The mapping and the reader's options need a reference. [The Lexis
-specification](spec.md) predates Compass and has no front-matter. Should
+specification](Spec.Lexis.md) predates Compass and has no front-matter. Should
 the mapping become a section of it, or a new Compass `Ref` for
 `lexis.markdown`?
 
