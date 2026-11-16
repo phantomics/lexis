@@ -81,7 +81,7 @@ validate those slots at parse time — but Lexis can't validate the
 discipline catches typos in attribute names; it doesn't catch
 anything more meaningful than that.
 
-The user's framing of this — "a nagging feeling that this is outside
+The developer's framing of this — "a nagging feeling that this is outside
 what should be Lexis's purview" — was precisely right. The dedicated-tag
 approach treats Lexis as an HTML production tool with a thin semantic
 veneer. The framing should be inverted: Lexis is a semantic document
@@ -93,6 +93,9 @@ extension mechanism.
 
 Five questions were settled during discussion before implementation
 began.
+
+Quotations attributed to the development session come from the
+transcript of the session named in `provenance.session`.
 
 ### LEXIS-DRAFT-passthrough-D1 — Generality over specificity
 
@@ -116,7 +119,10 @@ joins this lineage rather than reinventing alongside it.
 ### LEXIS-DRAFT-passthrough-D2 — Attribute name: `:medium`
 
 **Status:** Implemented
-**Context:** Not recorded in the original.
+**Context:** The developer's first sketch of the idea in the development
+session was `(passthrough (:for :html) (:script ...))`, and the
+assistant then asked: "Attribute name: `:for`, `:medium`, or
+`:target`?"
 **Decision:** The final choice was
 `:medium`, for consistency with the spec's existing vocabulary —
 sections §1.1 and §8 already talk about Lexis as a
@@ -124,7 +130,8 @@ sections §1.1 and §8 already talk about Lexis as a
 same word for the target identifier ties the mechanism back to the
 established design language.
 **Alternatives:** The attribute identifying the target was initially proposed as `:for`
-(reading naturally: "this is for HTML").
+(reading naturally: "this is for HTML"). The development session also
+weighed `:target`: "`:target` is technically accurate".
 
 ### LEXIS-DRAFT-passthrough-D3 — Children not parsed as Lexis
 
@@ -149,7 +156,13 @@ the first place.
 ### LEXIS-DRAFT-passthrough-D4 — No special handling for inline vs block position
 
 **Status:** Implemented
-**Context:** Not recorded in the original.
+**Context:** In the development session, the developer said of
+promoting assets to the document head: "The idea of auto-promotion to
+the head is interesting but it feels like this is not rightly a Lexis
+concern." The assistant then asked: "Inline vs. block context — should
+passthrough behave differently when used inline within a paragraph vs.
+as a block-level child? My instinct: no special handling; the renderer
+splices content at its position regardless."
 **Decision:** A passthrough may appear anywhere a child node is valid — at document
 top level, between blocks within a section, inline within a paragraph.
 The renderer emits its content at the position where the node appears.
@@ -159,6 +172,10 @@ host page template expects it, or the surrounding composer arranges
 the document accordingly. Lexis does not pretend to know HTML's
 placement rules.
 **Alternatives:** No automatic head-promotion, no positional rewriting.
+Before passthrough was proposed, the development session set out three
+options for placing HTML assets: "Option A (position-preserving), B
+(auto-promote to head), or C (document-level attributes for the head
+case + nodes for the body case)".
 
 ### LEXIS-DRAFT-passthrough-D5 — Belongs in core, not in an HTML-extension section
 
@@ -174,54 +191,70 @@ The new spec section was placed as §5.4, within the existing
 "Extension Mechanism" chapter alongside custom tags, custom tag
 registration, and the namespace convention for extension attributes.
 
-**Alternatives:** Not recorded in the original.
+**Alternatives:** For the HTML-specific tags that preceded passthrough,
+the development session suggested that "it might belong in a new
+"§11 HTML-Specific Extensions" section rather than the core
+vocabulary." For passthrough itself it weighed "`§7.5 Medium-Dependent
+Passthrough` (under Processing Model) or `§5.4 Passthrough` (under
+Extension Mechanism). The latter feels right because passthrough is
+fundamentally an extensibility mechanism."
 
 ### LEXIS-DRAFT-passthrough-D6 — Multi-target values
 
 **Status:** Implemented
-**Context:** Not recorded in the original.
+**Context:** The development session's design proposal gave the case of
+one stylesheet for two media: `(passthrough (@ :for (:html :epub))
+(:link :rel "stylesheet" :href "style.css"))`.
 **Decision:** The `:medium` attribute accepts a single
 keyword (`:medium :html`) or a list (`:medium (:html :epub)`) for
 content valid in more than one target.
-**Alternatives:** Not recorded in the original.
+**Alternatives:** Not recorded in the original or its session.
 
 ### LEXIS-DRAFT-passthrough-D7 — Aliases
 
 **Status:** Implemented
-**Context:** Not recorded in the original.
+**Context:** The development session asked: "Naming: `passthrough` vs.
+`raw` vs. `verbatim` vs. `emit`?", and recommended: "I prefer
+`passthrough` for clarity, with maybe a short alias if you want."
 **Decision:** `pthru` is accepted as a nickname for `passthrough`.
 Both parse to the same node class.
-**Alternatives:** Not recorded in the original.
+**Alternatives:** The other names, as the development session assessed
+them: "`raw` is shorter but ambiguous (raw what?)"; "`verbatim` echoes
+TeX/Markdown convention"; "`emit` suggests imperative action".
 
 ### LEXIS-DRAFT-passthrough-D8 — Metadata attributes
 
 **Status:** Implemented
-**Context:** Not recorded in the original.
+**Context:** Not recorded in the original or its session.
 **Decision:** Beyond `:medium`, passthrough nodes may
 carry arbitrary additional attributes (`:kind`, `:placement`,
 `:priority`, etc.) that renderers may use as hints. The spec does
 not assign meaning to these, but documents the convention so that
 different renderers can converge on shared vocabulary over time.
-**Alternatives:** Not recorded in the original.
+**Alternatives:** Not recorded in the original or its session.
 
 ### LEXIS-DRAFT-passthrough-D9 — `:except` deferred
 
-**Status:** Implemented
+**Status:** Accepted
 **Context:** There is no current use
 case, and adding it later is a non-breaking change.
 **Decision:** A complementary "render everywhere except X"
 attribute was considered and deferred.
-**Alternatives:** Not recorded in the original.
+**Alternatives:** Not recorded in the original or its session.
 
 ### LEXIS-DRAFT-passthrough-D10 — Content types
 
 **Status:** Implemented
-**Context:** Not recorded in the original.
+**Context:** The development session identified the question: "The main
+challenge is deciding what format the content takes—raw strings for
+direct emission or structured forms that each renderer interprets in
+its own way". Its design proposal allowed "A mix — strings and forms,
+all passed through in sequence."
 **Decision:** A passthrough child may be a string (emitted
 raw, unescaped) or an s-expression (interpreted by the renderer
 in its native convention — Spinneret forms for HTML). Both are
 supported in the same node.
-**Alternatives:** Not recorded in the original.
+**Alternatives:** Not recorded in the original or its session.
 
 
 ## Implementation
@@ -255,7 +288,7 @@ initarg with no recursive parsing.
 The tag registry (`src/parse.lisp:*tag-registry*@85fb9b4`) was extended to map both `passthrough` and `pthru`
 to the `lexis-passthrough` class. Because the registry uses string
 keys (one of the design choices for package-independent parsing —
-see the early implementation notes), this mapping works regardless
+see the registry's docstring), this mapping works regardless
 of which package the source s-expressions were read in.
 
 ### Text Processing
@@ -335,7 +368,7 @@ A new block of tests was added across the three existing test files,
 - Inline-markup characters (`*`, `[[`, `` ` ``) inside passthrough
   content survive the text processing pass unchanged
 
-**`test/test-html.lisp`** (9 tests, ~18 checks):
+**`test/test-html.lisp`** (10 tests, ~18 checks):
 - Spinneret form content renders verbatim into output
 - String content emitted as raw HTML
 - Non-matching medium yields no output
@@ -351,7 +384,17 @@ A new block of tests was added across the three existing test files,
 Test count for the suite went from 136 to 186 (all passing). No
 existing tests were modified; no regressions.
 
-**Test command:** Not recorded in the original.
+**Test command:**
+
+```sh
+sbcl --non-interactive \
+  --eval '(ql:quickload "lexis/tests" :silent t)' \
+  --eval '(unless (lexis/tests:run-tests) (uiop:quit 1))'
+```
+
+The counts were confirmed on 2026-11-16 by running the suite at
+`85fb9b4` (186 checks, all passing) and at its parent, `dc33325` (136
+checks, all passing).
 
 
 ## Files
@@ -365,11 +408,11 @@ Table: Files added or changed in commit `85fb9b4`.
 | `src/parse.lisp` | Modified | Added `raw-children-tag-p` helper; specialized `parse-node` to preserve raw content for passthrough tags; registered `passthrough` and `pthru` in tag registry |
 | `src/text-processing.lisp` | Modified | Added `process-text` method on `lexis-passthrough` (no-op) |
 | `src/html/render.lisp` | Modified | Added `*html-medium-keywords*`, `html-medium-match-p`, `passthrough-item-to-tree`, `render-html-tree` on `lexis-passthrough`; extended `render-children` with `:lexis-splice` sentinel handling |
-| `doc/spec.md` | Modified | Added §5.4 "Medium-Dependent Passthrough"; added passthrough row to Appendix A |
+| `doc/spec.md` | Modified | Renamed from `doc/lexis-spec.md`; added §5.4 "Medium-Dependent Passthrough"; added passthrough row to Appendix A |
 | `test/test-parse.lisp` | Modified | Added 8 passthrough parsing tests |
 | `test/test-text-processing.lisp` | Modified | Added 1 passthrough literal-preservation test |
-| `test/test-html.lisp` | Modified | Added 9 passthrough rendering tests |
-| `doc/DevLog.Passthrough.md` | **New** | This document |
+| `test/test-html.lisp` | Modified | Added 10 passthrough rendering tests |
+| `doc/Log.Passthrough.md` | **New** | This document, committed as `doc/DevLog.Passthrough.md` |
 
 
 ## The Principle That Emerged
