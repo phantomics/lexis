@@ -11,6 +11,9 @@ provenance:
   assistant:     claude-opus-5-5
   session:       ses_1adfe7ad9ffeXhdMKb49yDBuUQ
   migrated-from: doc/spec.md@9ebd54f
+relates-to:
+  - LEXIS-DRAFT-rendermarkdown
+  - LEXIS-DRAFT-passthrough
 ---
 
 # Lexis Document Format Specification
@@ -1311,6 +1314,51 @@ A conforming Lexis renderer:
 - Renders unknown tags via pass-through (rendering their children).
 
 
+## 11. Conformance Walkthrough
+
+This section is informative. It follows one document from source to
+rendered output, naming the section that governs each step, and shows
+where the reference implementation, the `lexis` and `lexis.html`
+systems, performs it.
+
+1. **Write the document.** The root is a `document` node (Section
+   2.1); attributes use either the plist or the alist form (Section
+   2.2); content uses core tags (Section 4) and inline markup
+   (Section 3).
+
+   ```lisp
+   (document (@ :title "Hello")
+     (section (@ :title "Greeting" :id "greet")
+       (paragraph "This is *Lexis*, with a [[link|https://example.com]].")))
+   ```
+
+   This form is readable by `cl:read`, so the document conforms to
+   Section 10.1.
+2. **Parse.** A processor reads the form into a tree of nodes,
+   normalizing both attribute forms to one representation (Sections
+   2.2 and 7.1). Unknown tags are handled as Section 5.1 requires, and
+   the children of `passthrough` are kept verbatim (Section 5.4). In the
+   reference implementation this is `src/parse.lisp:parse-document@9ebd54f`,
+   which also computes section depths.
+3. **Expand inline markup.** If the processor implements the text
+   processing pass (Sections 3 and 7.2), it expands the patterns in the
+   order of Section 3.3, leaving `code`, `code-block` and `passthrough`
+   content untouched. The paragraph above becomes text, an `emphasis`
+   node and a `web-link` node. Reference:
+   `src/text-processing.lisp:process-text@9ebd54f`.
+4. **Resolve references.** A processor with access to Classic or to
+   other documents may resolve `cross-ref` and `classic-link` targets
+   (Section 7.3). The reference implementation has no resolution pass.
+5. **Render.** A renderer produces output for its medium (Sections 7.4
+   and 10.3): every core tag with semantically appropriate output,
+   unknown tags by pass-through, and `passthrough` nodes only when their
+   `:medium` names the renderer's target (Section 5.4). Section 8 gives
+   guidance for each medium. Reference:
+   `src/html/render.lisp:render-html-tree@9ebd54f`, which produces a
+   Spinneret tree; `src/html/render.lisp:render-html@9ebd54f` runs steps
+   2, 3 and 5 and returns HTML.
+
+
 ## Appendix A: Core Tag Summary
 
 Table: Core tag summary.
@@ -1375,4 +1423,44 @@ Table: Classic extension attributes.
 
 ## Afterword: Limits
 
-Not recorded in the original.
+This specification is a working draft at format version 0.1. It
+describes more than the reference implementation, the `lexis` and
+`lexis.html` systems at version 0.1.0, does today.
+
+**What works.** Parsing of both attribute forms, with tag lookup that
+does not depend on the package a document was read in; the tag
+vocabulary listed below; unknown tags, which parse with a warning and
+render by pass-through; the passthrough mechanism of Section 5.4; the
+five inline patterns of Section 3; and HTML rendering through Spinneret.
+
+Table: Core tags of Section 4 and whether the reference implementation supports them.
+
+| Status | Tags |
+|---|---|
+| Parsed and rendered to HTML | `document`, `section`, `paragraph`, `code-block`, `blockquote`, `unordered-list`, `ordered-list`, `item`, `image`, `figure`, `caption`, `emphasis`, `strong`, `code`, `strikethrough`, `web-link`, `classic-link`, `cross-ref`, `passthrough` |
+| Not implemented; parsed as unknown tags | `aside`, `definition-list`, `definition`, `underline`, `superscript`, `subscript`, `table`, `row`, `cell`, `note` |
+
+**What does not work yet.**
+
+- The attributes `:caption` on `code-block` and `image`, `:uri` on
+  `blockquote`, and `:width` and `:height` on `image` are parsed but not
+  rendered.
+- Inline matching is simpler than Section 3.2 describes: an emphasis
+  delimiter is not checked for surrounding whitespace. There is no way
+  to write a literal `*`, `` ` ``, `[[` or `~~` in text.
+- Section 3.1 makes a bare `[[target]]` a reference to another document
+  by title or identifier, but the HTML renderer links it to `#target`
+  in the same document.
+- Of Classic integration (Section 6), only the conversion of `classic:`
+  URIs to `https://` URLs for `classic-link` is implemented; the
+  `classic:` attributes, resource embedding and document metadata are
+  carried but not interpreted.
+- There is no resolution pass (Section 7.3), no renderer other than
+  HTML (Section 8), and no validator for conforming documents
+  (Section 10.1).
+
+**What would close the gap.** The Markdown input plan
+([LEXIS-DRAFT-rendermarkdown](Plan.RenderMarkdown.md)) adds a `literal`
+tag and implements `table`, `row`, `cell`, `definition-list` and
+`definition`. The other tags, the resolution pass, further renderers and
+a validator have no plan yet.

@@ -452,10 +452,10 @@ the Survey's goal of editing Compass documents through the wiki.
 
 ### LEXIS-DRAFT-rendermarkdown-O5 — Where the Markdown mapping is documented
 
-The mapping and the reader's options need a reference. [The Lexis
-specification](Spec.Lexis.md) predates Compass and has no front-matter. Should
-the mapping become a section of it, or a new Compass `Ref` for
-`lexis.markdown`?
+The mapping and the reader's options need a reference. The Lexis
+specification is now a Compass `Spec`
+([LEXIS-DRAFT-lexis](Spec.Lexis.md)). Should the mapping become a
+section of it, or a new Compass `Ref` for `lexis.markdown`?
 
 
 ## Prior Art

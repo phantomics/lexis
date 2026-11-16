@@ -408,7 +408,7 @@ Table: Files added or changed in commit `9ebd54f`.
 | `src/parse.lisp` | Modified | Added `raw-children-tag-p` helper; specialized `parse-node` to preserve raw content for passthrough tags; registered `passthrough` and `pthru` in tag registry |
 | `src/text-processing.lisp` | Modified | Added `process-text` method on `lexis-passthrough` (no-op) |
 | `src/html/render.lisp` | Modified | Added `*html-medium-keywords*`, `html-medium-match-p`, `passthrough-item-to-tree`, `render-html-tree` on `lexis-passthrough`; extended `render-children` with `:lexis-splice` sentinel handling |
-| `doc/spec.md` | Modified | Renamed from `doc/lexis-spec.md`; added §5.4 "Medium-Dependent Passthrough"; added passthrough row to Appendix A |
+| `doc/spec.md` | Modified | Now `doc/Spec.Lexis.md`. Renamed from `doc/lexis-spec.md`; added §5.4 "Medium-Dependent Passthrough"; added passthrough row to Appendix A |
 | `test/test-parse.lisp` | Modified | Added 8 passthrough parsing tests |
 | `test/test-text-processing.lisp` | Modified | Added 1 passthrough literal-preservation test |
 | `test/test-html.lisp` | Modified | Added 10 passthrough rendering tests |
