@@ -1,3 +1,33 @@
+---
+id:            LEXIS-DRAFT-passthrough
+title:         "Medium-Dependent Passthrough: Development Log"
+genre:         Log
+scope:         component
+project:       Lexis
+component:     lexis
+language:      en
+status:        Implemented
+authors:
+  - Andrew Sengul
+approved-by:   Andrew Sengul
+reviewed:      2026-11-16
+provenance:
+  assistant:     claude-opus-5-5
+  session:       ses_1adfe7ad9ffeXhdMKb49yDBuUQ
+  migrated-from: doc/DevLog.Passthrough.md@85fb9b4
+decisions:
+  - LEXIS-DRAFT-passthrough-D1
+  - LEXIS-DRAFT-passthrough-D2
+  - LEXIS-DRAFT-passthrough-D3
+  - LEXIS-DRAFT-passthrough-D4
+  - LEXIS-DRAFT-passthrough-D5
+  - LEXIS-DRAFT-passthrough-D6
+  - LEXIS-DRAFT-passthrough-D7
+  - LEXIS-DRAFT-passthrough-D8
+  - LEXIS-DRAFT-passthrough-D9
+  - LEXIS-DRAFT-passthrough-D10
+---
+
 # Medium-Dependent Passthrough: Development Log
 
 This document chronicles the design discussion and implementation of
@@ -5,8 +35,6 @@ the passthrough mechanism in Lexis. Prior to this work, Lexis had no
 way to carry rendering-target-specific content — stylesheets, scripts,
 LaTeX preamble lines, terminal escape sequences, or any other
 verbatim material whose meaning is confined to a single output medium.
-
-**Date:** 2026-06-05
 
 
 ## Problem
@@ -66,9 +94,11 @@ extension mechanism.
 Five questions were settled during discussion before implementation
 began.
 
-### 1. Generality over specificity
+### LEXIS-DRAFT-passthrough-D1 — Generality over specificity
 
-Rather than adding HTML-specific tags, Lexis adopts a single general
+**Status:** Implemented
+**Context:** See [Problem](#problem).
+**Decision:** Rather than adding HTML-specific tags, Lexis adopts a single general
 **passthrough** mechanism for all medium-specific verbatim content.
 A passthrough node names its target medium via an attribute and
 carries opaque content; renderers for matching media emit the
@@ -81,25 +111,27 @@ Texinfo's `@ifhtml`/`@iftex` conditionals, and DocBook's
 `<programlisting language="...">` all express the same idea. Lexis
 joins this lineage rather than reinventing alongside it.
 
-### 2. Attribute name: `:medium`
+**Alternatives:** See [Problem](#problem).
 
-The attribute identifying the target was initially proposed as `:for`
-(reading naturally: "this is for HTML"). The final choice was
+### LEXIS-DRAFT-passthrough-D2 — Attribute name: `:medium`
+
+**Status:** Implemented
+**Context:** Not recorded in the original.
+**Decision:** The final choice was
 `:medium`, for consistency with the spec's existing vocabulary —
 sections §1.1 and §8 already talk about Lexis as a
 "medium-independent" format with "multi-target rendering". Using the
 same word for the target identifier ties the mechanism back to the
 established design language.
+**Alternatives:** The attribute identifying the target was initially proposed as `:for`
+(reading naturally: "this is for HTML").
 
-### 3. Children not parsed as Lexis
+### LEXIS-DRAFT-passthrough-D3 — Children not parsed as Lexis
 
-The passthrough children are opaque target-native data. They must
-**not** be recursively walked by the Lexis parser. Without this, a
-Spinneret form like `(:script :src "app.js")` would parse as an
-unknown Lexis element with tag `:SCRIPT` (a keyword), polluting the
-node tree with spurious `lexis-unknown-element` instances and
-emitting warnings for content that was never meant to be Lexis in
-the first place.
+**Status:** Implemented
+**Context:** The passthrough children are opaque target-native data.
+**Decision:** They must
+**not** be recursively walked by the Lexis parser.
 
 The implementation captures passthrough children verbatim into a
 dedicated `raw-content` slot at parse time, leaving the standard
@@ -107,76 +139,120 @@ dedicated `raw-content` slot at parse time, leaving the standard
 processing, depth computation, child rendering) operate on `children`
 and so naturally ignore passthrough content.
 
-### 4. No special handling for inline vs block position
+**Alternatives:** Without this, a
+Spinneret form like `(:script :src "app.js")` would parse as an
+unknown Lexis element with tag `:SCRIPT` (a keyword), polluting the
+node tree with spurious `lexis-unknown-element` instances and
+emitting warnings for content that was never meant to be Lexis in
+the first place.
 
-A passthrough may appear anywhere a child node is valid — at document
+### LEXIS-DRAFT-passthrough-D4 — No special handling for inline vs block position
+
+**Status:** Implemented
+**Context:** Not recorded in the original.
+**Decision:** A passthrough may appear anywhere a child node is valid — at document
 top level, between blocks within a section, inline within a paragraph.
 The renderer emits its content at the position where the node appears.
-No automatic head-promotion, no positional rewriting. If a passthrough
+If a passthrough
 needs to be in `<head>`, the document author places it where the
 host page template expects it, or the surrounding composer arranges
 the document accordingly. Lexis does not pretend to know HTML's
 placement rules.
+**Alternatives:** No automatic head-promotion, no positional rewriting.
 
-### 5. Belongs in core, not in an HTML-extension section
+### LEXIS-DRAFT-passthrough-D5 — Belongs in core, not in an HTML-extension section
 
-The passthrough mechanism is target-agnostic — it serves HTML
+**Status:** Implemented
+**Context:** The passthrough mechanism is target-agnostic — it serves HTML
 scripts, LaTeX preamble, terminal escape codes, RSS metadata, and
 any future medium equally. It is the canonical extension point for
-target-specific concerns. That makes it a core feature of Lexis as a
+target-specific concerns.
+**Decision:** That makes it a core feature of Lexis as a
 multi-target format, not an HTML extension.
 
 The new spec section was placed as §5.4, within the existing
 "Extension Mechanism" chapter alongside custom tags, custom tag
 registration, and the namespace convention for extension attributes.
 
-### Additional choices
+**Alternatives:** Not recorded in the original.
 
-- **Multi-target values.** The `:medium` attribute accepts a single
-  keyword (`:medium :html`) or a list (`:medium (:html :epub)`) for
-  content valid in more than one target.
-- **Aliases.** `pthru` is accepted as a nickname for `passthrough`.
-  Both parse to the same node class.
-- **Metadata attributes.** Beyond `:medium`, passthrough nodes may
-  carry arbitrary additional attributes (`:kind`, `:placement`,
-  `:priority`, etc.) that renderers may use as hints. The spec does
-  not assign meaning to these, but documents the convention so that
-  different renderers can converge on shared vocabulary over time.
-- **`:except` deferred.** A complementary "render everywhere except X"
-  attribute was considered and deferred. There is no current use
-  case, and adding it later is a non-breaking change.
-- **Content types.** A passthrough child may be a string (emitted
-  raw, unescaped) or an s-expression (interpreted by the renderer
-  in its native convention — Spinneret forms for HTML). Both are
-  supported in the same node.
+### LEXIS-DRAFT-passthrough-D6 — Multi-target values
+
+**Status:** Implemented
+**Context:** Not recorded in the original.
+**Decision:** The `:medium` attribute accepts a single
+keyword (`:medium :html`) or a list (`:medium (:html :epub)`) for
+content valid in more than one target.
+**Alternatives:** Not recorded in the original.
+
+### LEXIS-DRAFT-passthrough-D7 — Aliases
+
+**Status:** Implemented
+**Context:** Not recorded in the original.
+**Decision:** `pthru` is accepted as a nickname for `passthrough`.
+Both parse to the same node class.
+**Alternatives:** Not recorded in the original.
+
+### LEXIS-DRAFT-passthrough-D8 — Metadata attributes
+
+**Status:** Implemented
+**Context:** Not recorded in the original.
+**Decision:** Beyond `:medium`, passthrough nodes may
+carry arbitrary additional attributes (`:kind`, `:placement`,
+`:priority`, etc.) that renderers may use as hints. The spec does
+not assign meaning to these, but documents the convention so that
+different renderers can converge on shared vocabulary over time.
+**Alternatives:** Not recorded in the original.
+
+### LEXIS-DRAFT-passthrough-D9 — `:except` deferred
+
+**Status:** Implemented
+**Context:** There is no current use
+case, and adding it later is a non-breaking change.
+**Decision:** A complementary "render everywhere except X"
+attribute was considered and deferred.
+**Alternatives:** Not recorded in the original.
+
+### LEXIS-DRAFT-passthrough-D10 — Content types
+
+**Status:** Implemented
+**Context:** Not recorded in the original.
+**Decision:** A passthrough child may be a string (emitted
+raw, unescaped) or an s-expression (interpreted by the renderer
+in its native convention — Spinneret forms for HTML). Both are
+supported in the same node.
+**Alternatives:** Not recorded in the original.
 
 
 ## Implementation
 
 ### Node Class
 
-`src/tags.lisp` gained the `lexis-passthrough` class with a
+`src/tags.lisp` gained the `lexis-passthrough` class
+(`src/tags.lisp:lexis-passthrough@85fb9b4`) with a
 `raw-content` slot dedicated to the verbatim child list. Two helper
 methods are defined on the class:
 
-- `passthrough-targets` — normalizes the `:medium` attribute into a
+- `src/tags.lisp:passthrough-targets@85fb9b4` — normalizes the `:medium` attribute into a
   list of keywords regardless of whether the source value was a single
   keyword or a list
-- `passthrough-applies-p` — predicate testing whether a specific
+- `src/tags.lisp:passthrough-applies-p@85fb9b4` — predicate testing whether a specific
   medium is named in the target list
 
 The class is exported from `#:lexis` along with both accessors.
 
 ### Parser Specialization
 
-The standard `parse-node ((form cons))` method recurses into children
+The standard `parse-node ((form cons))` method
+(`src/parse.lisp:parse-node@85fb9b4`) recurses into children
 via `(mapcar #'parse-node children)`. For passthrough tags this
-recursion must be skipped. A new helper `raw-children-tag-p` returns
+recursion must be skipped. A new helper,
+`src/parse.lisp:raw-children-tag-p@85fb9b4`, returns
 T for the `passthrough` and `pthru` tag names; when the helper
 returns T, children are passed straight into the `:raw-content`
 initarg with no recursive parsing.
 
-The tag registry was extended to map both `passthrough` and `pthru`
+The tag registry (`src/parse.lisp:*tag-registry*@85fb9b4`) was extended to map both `passthrough` and `pthru`
 to the `lexis-passthrough` class. Because the registry uses string
 keys (one of the design choices for package-independent parsing —
 see the early implementation notes), this mapping works regardless
@@ -184,7 +260,7 @@ of which package the source s-expressions were read in.
 
 ### Text Processing
 
-The text processing pass (`src/text-processing.lisp`) traverses the
+The text processing pass (`src/text-processing.lisp:process-text@85fb9b4`) traverses the
 node tree expanding inline markup patterns (`*emphasis*`, `**strong**`,
 `` `code` ``, `[[link|uri]]`, etc.) inside text-node children of each
 element. A specialization on `lexis-passthrough` returns the node
@@ -199,10 +275,10 @@ restructuring of the traversal.
 ### HTML Renderer
 
 `src/html/render.lisp` gained the `render-html-tree` method for
-`lexis-passthrough`. The method:
+`lexis-passthrough` (`src/html/render.lisp:render-html-tree@85fb9b4`). The method:
 
 1. Calls `passthrough-targets` to get the list of target media.
-2. Tests membership in `*html-medium-keywords*` (currently `(:html
+2. Tests membership in `src/html/render.lisp:*html-medium-keywords*@85fb9b4` (currently `(:html
    :html5)`). If no overlap, returns NIL — the parent's
    `render-children` filters NIL results, so the node contributes
    nothing to the output.
@@ -214,7 +290,7 @@ restructuring of the traversal.
    `render-children` recognizes and unrolls at the parent level —
    keeping the splice transparent (no wrapper element introduced).
 
-`render-children` itself was extended with the `:lexis-splice`
+`render-children` (`src/html/render.lisp:render-children@85fb9b4`) itself was extended with the `:lexis-splice`
 handling. The pattern is simple: if a child's rendered result is a
 cons whose CAR is `:lexis-splice`, NCONC its tail into the result
 list; otherwise collect the rendered result as before.
@@ -222,7 +298,7 @@ list; otherwise collect the rendered result as before.
 ### Spec
 
 A new §5.4 "Medium-Dependent Passthrough" was added to
-`doc/spec.md`. The section covers:
+`doc/spec.md@85fb9b4`. The section covers:
 
 - Syntax (the tag, the `:medium` attribute, content forms)
 - Semantics (verbatim emission for matching media, silent skip
@@ -239,7 +315,7 @@ A new §5.4 "Medium-Dependent Passthrough" was added to
 Appendix A (Core Tag Summary) gained a passthrough row.
 
 
-## Tests
+## Verification
 
 A new block of tests was added across the three existing test files,
 50 checks in total:
@@ -275,8 +351,12 @@ A new block of tests was added across the three existing test files,
 Test count for the suite went from 136 to 186 (all passing). No
 existing tests were modified; no regressions.
 
+**Test command:** Not recorded in the original.
+
 
 ## Files
+
+Table: Files added or changed in commit `85fb9b4`.
 
 | File | Action | Description |
 |------|--------|-------------|
@@ -292,17 +372,7 @@ existing tests were modified; no regressions.
 | `doc/DevLog.Passthrough.md` | **New** | This document |
 
 
-## Metrics
-
-- Test checks added: 50 (136 → 186)
-- Regressions: 0
-- New source classes: 1 (`lexis-passthrough`)
-- New source helpers: 5 (`raw-children-tag-p`, `passthrough-targets`,
-  `passthrough-applies-p`, `html-medium-match-p`, `passthrough-item-to-tree`)
-- Spec sections added: 1 (§5.4, ~110 lines)
-
-
-## Discussion
+## The Principle That Emerged
 
 The passthrough mechanism is a small piece of code but a meaningful
 architectural choice. It resolves a tension that would otherwise grow:
@@ -326,3 +396,18 @@ ANSI escape sequences for a terminal renderer, and OPF metadata for
 an ePub renderer. Adding a new output target requires defining
 methods on existing classes — not introducing new tags that every
 other renderer must learn to ignore.
+
+
+## Metrics
+
+- Test checks added: 50 (136 → 186)
+- Regressions: 0
+- New source classes: 1 (`lexis-passthrough`)
+- New source helpers: 5 (`raw-children-tag-p`, `passthrough-targets`,
+  `passthrough-applies-p`, `html-medium-match-p`, `passthrough-item-to-tree`)
+- Spec sections added: 1 (§5.4, ~110 lines)
+
+
+## Outstanding Work
+
+- **`:except`.** Deferred; see LEXIS-DRAFT-passthrough-D9.
