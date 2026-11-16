@@ -10,7 +10,7 @@ status:        Draft
 provenance:
   assistant:   claude-opus-5-5
 relates-to:
-  - SEED-DRAFT-classicinterface
+  - SEED-0011
   - CLASSIC-0011
 cites:
   - title:     "3bmd — Markdown Processor in CL Using Esrap"
@@ -46,7 +46,7 @@ that converts Markdown text into a Lexis s-expression, so that Classic
 content stored as Markdown can be previewed, rendered and searched for
 links through the same path as content written in Lexis. It carries out
 the recommendation "A Markdown→Lexis reader" in the Classic interface
-Survey ([SEED-DRAFT-classicinterface](../../seed/doc/Survey.ClassicInterface.md)),
+Survey ([SEED-0011](../../seed/doc/Survey.ClassicInterface.md)),
 corrected by what running the suggested parser, 3bmd, showed. The first
 version is deliberately narrow: several features are dropped or simplified
 and listed under [Deferred Work](#deferred-work), and the parser is
@@ -155,7 +155,7 @@ because the CMS needs the reader now.
 **Status:** Proposed
 **Context:** The Composer builds and returns Lexis s-expressions, not
 parsed node objects. The Survey's one-way migration from a Markdown body
-to a Lexis-native body (SEED-DRAFT-classicinterface-O2) needs a form that
+to a Lexis-native body (SEED-O21) needs a form that
 can be stored.
 **Decision:** `markdown->lexis` returns an s-expression: a list of block
 forms, or a `document` form when asked. A convenience function parses the
