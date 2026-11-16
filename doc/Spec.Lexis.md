@@ -9,7 +9,6 @@ status:        Draft
 schema-version: "0.1"
 provenance:
   assistant:     claude-opus-5-5
-  session:       ses_1adfe7ad9ffeXhdMKb49yDBuUQ
   migrated-from: doc/spec.md@9ebd54f
 relates-to:
   - LEXIS-DRAFT-rendermarkdown
@@ -110,8 +109,13 @@ Every node is either:
 - A **text node**: a string.
 
 ```
-node     := tagged-node | text-node
+node        := tagged-node | text-node
 tagged-node := (tag [attributes] child*)
+attributes  := (@ plist-entry*) | (@ alist-entry*)
+plist-entry := keyword value
+alist-entry := (key value)
+key         := symbol | string
+value       := s-expression
 text-node   := string
 tag         := symbol
 child       := node
@@ -201,6 +205,22 @@ Renderers are responsible for collapsing or preserving whitespace as
 appropriate for their output format (e.g., HTML collapses whitespace;
 a terminal renderer may preserve it).
 
+### 2.5 Reading Untrusted Documents
+
+A Lexis document is read with the Lisp reader, which can evaluate code
+and create symbols as it reads. A processor that reads a document from
+an untrusted source:
+
+- MUST bind `*read-eval*` to false while reading, so that `#.` forms
+  signal an error instead of being evaluated;
+- SHOULD limit the symbols that reading can create, for example by
+  reading in a package reserved for documents or with a restricted
+  readtable, so that a document cannot intern arbitrary symbols in the
+  processor's own packages.
+
+These rules concern reading only. Passthrough content from untrusted
+sources raises separate concerns (Section 5.4).
+
 
 ## 3. Required Inline Markup
 
@@ -219,6 +239,8 @@ Expands to a link node. The URI scheme determines the link type:
 
 - `https://` or `http://` URIs expand to `web-link` nodes.
 - `classic:` URIs expand to `classic-link` nodes (see Section 6).
+- Any other URI, including other schemes such as `mailto:`, relative
+  paths and `#anchors`, expands to a `web-link` node.
 - Bare text without a URI (`[[Page Name]]`) expands to a `cross-ref`
   node, interpreted as a reference to another document by title or
   identifier.
@@ -307,7 +329,7 @@ Children: zero or more block-level nodes (`section`, `paragraph`, etc.).
 **`section`** -- A structural division of the document.
 
 Attributes:
-- `:title` (string) -- Section heading text. Required.
+- `:title` (string) -- Section heading text. REQUIRED.
 - `:id` (string) -- Unique identifier for cross-referencing.
 - `:depth` (integer) -- Explicit nesting depth (normally inferred from
   structural nesting).
@@ -460,7 +482,7 @@ followed by children (text and/or nested inline elements).
 **`web-link`** -- A hyperlink to a web resource.
 
 Attributes:
-- `:uri` (string) -- The target URI. Required.
+- `:uri` (string) -- The target URI. REQUIRED.
 - `:title` (string) -- Advisory title (tooltip text).
 
 Children: display text (inline nodes).
@@ -489,8 +511,8 @@ display text from the target (e.g., the section title or document title).
 **`image`** -- An image reference.
 
 Attributes:
-- `:src` (string) -- Image source path or URI. Required.
-- `:alt` (string) -- Alternative text description. Required for
+- `:src` (string) -- Image source path or URI. REQUIRED.
+- `:alt` (string) -- Alternative text description. REQUIRED for
   accessibility.
 - `:width` (integer or string) -- Display width.
 - `:height` (integer or string) -- Display height.
@@ -591,7 +613,8 @@ handle unknown tags gracefully by one of:
 1. Rendering the tag's children as if the tag were a generic container
    (pass-through rendering).
 2. Ignoring the tag and its children entirely. This option is NOT
-   RECOMMENDED, and a renderer MUST NOT use it (Section 10.3).
+   RECOMMENDED; a processor that uses it MUST signal the loss
+   (Section 10.2), and a renderer MUST NOT use it (Section 10.3).
 3. Signaling a warning and falling back to option 1 or 2.
 
 The RECOMMENDED behavior is option 1 (pass-through), which ensures
@@ -606,14 +629,18 @@ Custom tags follow the same syntax as core tags:
 
 ### 5.2 Custom Tag Registration
 
-In a Lisp implementation, custom tags are registered by defining a
-node class with a tag name:
+In a Lisp implementation, custom tags are registered by mapping a tag
+name to a node class. In the reference implementation the class is
+defined with `defclass` and registered with `register-tag`
+(`src/parse.lisp:register-tag@9ebd54f`):
 
 ```lisp
-(define-lexis-node theorem (section)
+(defclass theorem-node (lexis:lexis-section)
   ((proof :accessor proof
           :initarg :proof))
-  (:tag-name "theorem"))
+  (:default-initargs :tag 'theorem))
+
+(lexis:register-tag 'theorem 'theorem-node)
 ```
 
 The registration mechanism maps tag name symbols to node classes,
@@ -762,6 +789,11 @@ extensions remains a valid Lexis document, and processors that do not
 understand Classic extensions process the document correctly by ignoring
 the extension attributes.
 
+The requirements of this section apply only to Classic-aware
+processors. Other processors treat `classic:` attributes as unknown
+extension attributes (Section 5.3) and `classic-link` nodes as Section
+6.2 describes.
+
 ### 6.1 The `classic:` Attribute Namespace
 
 Attributes prefixed with `classic:` carry Classic-specific metadata:
@@ -833,7 +865,8 @@ rich content at render time. For example, an author reference:
   " in May 2026.")
 ```
 
-A Classic renderer resolves the URI, retrieves the `classic-person`
+The example assumes that an `author-ref` extension tag is registered
+(Section 5.2). A Classic renderer resolves the URI, retrieves the `classic-person`
 entity, and renders a linked name, headshot, or author card depending
 on the output medium and template. A non-Classic renderer renders the
 `author-ref` tag's children (empty in this case) or the raw URI as
@@ -859,10 +892,13 @@ identity, enabling the publishing system to track the document's
 lifecycle, authorship, and federation status.
 
 
-## 7. Required Processing Model
+## 7. Processing Model
+
+This section is informative. It describes a typical pipeline of passes;
+the requirements on each pass are in the sections it cites.
 
 A Lexis document is processed through a pipeline of passes. Not all
-passes are required -- a minimal processor MAY skip the text processing
+passes are required -- a minimal processor may skip the text processing
 pass and render the raw s-expression tree directly.
 
 ### 7.1 Parse
@@ -891,7 +927,7 @@ Resolve cross-references and Classic URI references:
 - `classic-link` and `:classic:uri` references: resolve against a
   Classic triplestore (if available) to retrieve resource metadata.
 
-This pass MAY be skipped if no cross-references are present or if
+This pass may be skipped if no cross-references are present or if
 Classic integration is not active.
 
 ### 7.4 Rendering
@@ -1167,6 +1203,10 @@ SHOULD follow these principles in order of preference:
 
 ## 9. Examples
 
+The examples in Sections 9.2 and 9.3 use extension tags
+(`character-infobox` and `team-member`); they assume that these
+extensions are registered (Section 5.2).
+
 ### 9.1 A Simple Blog Post
 
 ```lisp
@@ -1319,7 +1359,9 @@ A conforming Lexis processor MUST:
 
 - parse any conforming Lexis document without error;
 - handle all core vocabulary tags defined in Section 4;
-- handle unknown tags gracefully (Section 5.1) without data loss;
+- handle unknown tags gracefully (Section 5.1) without data loss,
+  except that a processor which discards an unknown tag's content MUST
+  signal that loss;
 - ignore unknown attribute namespaces;
 - implement the text processing pass (Section 3), or document that it
   does not.
@@ -1353,11 +1395,13 @@ systems, performs it.
        (paragraph "This is *Lexis*, with a [[link|https://example.com]].")))
    ```
 
-   This form is readable by `cl:read`, so the document conforms to
-   Section 10.1.
+   This form is readable by `cl:read`, has a `document` root, uses only
+   core tags, and follows the attribute syntax of Section 2.2, so the
+   document conforms to Section 10.1.
 2. **Parse.** A processor reads the form into a tree of nodes,
    normalizing both attribute forms to one representation (Sections
-   2.2 and 7.1). Unknown tags are handled as Section 5.1 requires, and
+   2.2 and 7.1), reading untrusted input as Section 2.5 requires.
+   Unknown tags are handled as Section 5.1 requires, and
    the children of `passthrough` are kept verbatim (Section 5.4). In the
    reference implementation this is `src/parse.lisp:parse-document@9ebd54f`,
    which also computes section depths.
@@ -1454,7 +1498,7 @@ vocabulary listed below; unknown tags, which parse with a warning and
 render by pass-through; the passthrough mechanism of Section 5.4; the
 five inline patterns of Section 3; and HTML rendering through Spinneret.
 
-Table: Core tags of Section 4 and whether the reference implementation supports them.
+Table: Core tags of Section 4, with `passthrough` (Section 5.4) and `classic-link` (Section 6.2), and whether the reference implementation supports them.
 
 | Status | Tags |
 |---|---|
@@ -1478,6 +1522,9 @@ processor or renderer under Section 10.
   URIs to `https://` URLs for `classic-link` is implemented; the
   `classic:` attributes, resource embedding and document metadata are
   carried but not interpreted.
+- The reference implementation parses forms that have already been
+  read; reading untrusted documents safely (Section 2.5) is left to
+  the caller.
 - There is no resolution pass (Section 7.3), no renderer other than
   HTML (Section 8), and no validator for conforming documents
   (Section 10.1).

@@ -198,8 +198,10 @@ support strikethrough itself.
 **Context:** A `section` title is a string attribute, but a Markdown
 heading can contain emphasis, code and links.
 **Decision:** The first version flattens a heading's content to plain text
-for the section's `:title`. Definition list terms, also string attributes,
-are flattened the same way.
+for the section's `:title`. Definition list terms are flattened the
+same way for now, although the specification allows a term to be a list
+of nodes ([LEXIS-DRAFT-lexis](Spec.Lexis.md), §4.3), so rich terms are
+already possible.
 **Alternatives:** Extending `section` to take a title of Lexis nodes is
 the intended next step, after the first version works (see
 [Deferred Work](#deferred-work)).
@@ -398,7 +400,8 @@ In order of priority:
    add Lexis tags for both, with HTML rendering, and translate them.
 2. **Headings with inline markup** (LEXIS-DRAFT-rendermarkdown-D6): let a
    section carry a title made of Lexis nodes, and stop flattening
-   headings.
+   headings. Definition list terms can keep their markup without a
+   change to Lexis, since a term may already be a list of nodes.
 3. **Replacing 3bmd** (LEXIS-DRAFT-rendermarkdown-D2) with a parser that
    follows CommonMark, which would fix the divergences under
    [Problem](#problem).
