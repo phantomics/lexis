@@ -51,7 +51,7 @@ corrected by what running the suggested parser, 3bmd, showed. The first
 version is deliberately narrow: several features are dropped or simplified
 and listed under [Deferred Work](#deferred-work), and the parser is
 expected to be replaced. Lexis code references are pinned to revision
-`85fb9b4`, Classic's to `807640b`.
+`9ebd54f`, Classic's to `807640b`.
 
 
 ## Problem
@@ -68,7 +68,7 @@ links are not recognised. The Survey makes a Markdown reader a
 prerequisite for the CMS preview and for wiki link resolution.
 
 Lexis has no block-level reader of any kind. Its only text processing is
-the inline pass, `src/text-processing.lisp:process-text@85fb9b4`, which
+the inline pass, `src/text-processing.lisp:process-text@9ebd54f`, which
 expands `` `code` ``, `[[links]]`, `**strong**`, `*emphasis*` and
 `~~strikethrough~~` inside text strings.
 
@@ -104,8 +104,8 @@ rendered page unchanged.
 ## Goals
 
 - `markdown->lexis` converts a Markdown string into a Lexis s-expression
-  that `src/parse.lisp:parse-document@85fb9b4` and
-  `src/html/render.lisp:render-html@85fb9b4` accept, with
+  that `src/parse.lisp:parse-document@9ebd54f` and
+  `src/html/render.lisp:render-html@9ebd54f` accept, with
   the text rendered exactly as the Markdown author wrote it.
 - Paragraphs, headings, emphasis, strong, inline code, code blocks, block
   quotes, lists, links, images, tables, definition lists and wiki links

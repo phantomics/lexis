@@ -14,7 +14,7 @@ reviewed:      2026-11-16
 provenance:
   assistant:     claude-opus-5-5
   session:       ses_1adfe7ad9ffeXhdMKb49yDBuUQ
-  migrated-from: doc/DevLog.Passthrough.md@85fb9b4
+  migrated-from: doc/DevLog.Passthrough.md@9ebd54f
 decisions:
   - LEXIS-DRAFT-passthrough-D1
   - LEXIS-DRAFT-passthrough-D2
@@ -262,14 +262,14 @@ supported in the same node.
 ### Node Class
 
 `src/tags.lisp` gained the `lexis-passthrough` class
-(`src/tags.lisp:lexis-passthrough@85fb9b4`) with a
+(`src/tags.lisp:lexis-passthrough@9ebd54f`) with a
 `raw-content` slot dedicated to the verbatim child list. Two helper
 methods are defined on the class:
 
-- `src/tags.lisp:passthrough-targets@85fb9b4` — normalizes the `:medium` attribute into a
+- `src/tags.lisp:passthrough-targets@9ebd54f` — normalizes the `:medium` attribute into a
   list of keywords regardless of whether the source value was a single
   keyword or a list
-- `src/tags.lisp:passthrough-applies-p@85fb9b4` — predicate testing whether a specific
+- `src/tags.lisp:passthrough-applies-p@9ebd54f` — predicate testing whether a specific
   medium is named in the target list
 
 The class is exported from `#:lexis` along with both accessors.
@@ -277,15 +277,15 @@ The class is exported from `#:lexis` along with both accessors.
 ### Parser Specialization
 
 The standard `parse-node ((form cons))` method
-(`src/parse.lisp:parse-node@85fb9b4`) recurses into children
+(`src/parse.lisp:parse-node@9ebd54f`) recurses into children
 via `(mapcar #'parse-node children)`. For passthrough tags this
 recursion must be skipped. A new helper,
-`src/parse.lisp:raw-children-tag-p@85fb9b4`, returns
+`src/parse.lisp:raw-children-tag-p@9ebd54f`, returns
 T for the `passthrough` and `pthru` tag names; when the helper
 returns T, children are passed straight into the `:raw-content`
 initarg with no recursive parsing.
 
-The tag registry (`src/parse.lisp:*tag-registry*@85fb9b4`) was extended to map both `passthrough` and `pthru`
+The tag registry (`src/parse.lisp:*tag-registry*@9ebd54f`) was extended to map both `passthrough` and `pthru`
 to the `lexis-passthrough` class. Because the registry uses string
 keys (one of the design choices for package-independent parsing —
 see the registry's docstring), this mapping works regardless
@@ -293,7 +293,7 @@ of which package the source s-expressions were read in.
 
 ### Text Processing
 
-The text processing pass (`src/text-processing.lisp:process-text@85fb9b4`) traverses the
+The text processing pass (`src/text-processing.lisp:process-text@9ebd54f`) traverses the
 node tree expanding inline markup patterns (`*emphasis*`, `**strong**`,
 `` `code` ``, `[[link|uri]]`, etc.) inside text-node children of each
 element. A specialization on `lexis-passthrough` returns the node
@@ -308,10 +308,10 @@ restructuring of the traversal.
 ### HTML Renderer
 
 `src/html/render.lisp` gained the `render-html-tree` method for
-`lexis-passthrough` (`src/html/render.lisp:render-html-tree@85fb9b4`). The method:
+`lexis-passthrough` (`src/html/render.lisp:render-html-tree@9ebd54f`). The method:
 
 1. Calls `passthrough-targets` to get the list of target media.
-2. Tests membership in `src/html/render.lisp:*html-medium-keywords*@85fb9b4` (currently `(:html
+2. Tests membership in `src/html/render.lisp:*html-medium-keywords*@9ebd54f` (currently `(:html
    :html5)`). If no overlap, returns NIL — the parent's
    `render-children` filters NIL results, so the node contributes
    nothing to the output.
@@ -323,7 +323,7 @@ restructuring of the traversal.
    `render-children` recognizes and unrolls at the parent level —
    keeping the splice transparent (no wrapper element introduced).
 
-`render-children` (`src/html/render.lisp:render-children@85fb9b4`) itself was extended with the `:lexis-splice`
+`render-children` (`src/html/render.lisp:render-children@9ebd54f`) itself was extended with the `:lexis-splice`
 handling. The pattern is simple: if a child's rendered result is a
 cons whose CAR is `:lexis-splice`, NCONC its tail into the result
 list; otherwise collect the rendered result as before.
@@ -331,7 +331,7 @@ list; otherwise collect the rendered result as before.
 ### Spec
 
 A new §5.4 "Medium-Dependent Passthrough" was added to
-`doc/spec.md@85fb9b4`. The section covers:
+`doc/spec.md@9ebd54f`. The section covers:
 
 - Syntax (the tag, the `:medium` attribute, content forms)
 - Semantics (verbatim emission for matching media, silent skip
@@ -393,13 +393,13 @@ sbcl --non-interactive \
 ```
 
 The counts were confirmed on 2026-11-16 by running the suite at
-`85fb9b4` (186 checks, all passing) and at its parent, `dc33325` (136
+`9ebd54f` (186 checks, all passing) and at its parent, `dc33325` (136
 checks, all passing).
 
 
 ## Files
 
-Table: Files added or changed in commit `85fb9b4`.
+Table: Files added or changed in commit `9ebd54f`.
 
 | File | Action | Description |
 |------|--------|-------------|
