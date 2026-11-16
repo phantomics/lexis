@@ -14,6 +14,13 @@ provenance:
 relates-to:
   - LEXIS-DRAFT-rendermarkdown
   - LEXIS-DRAFT-passthrough
+cites:
+  - title:     "RFC 2119 — Key words for use in RFCs to Indicate Requirement Levels"
+    locator:   "BCP 14, March 1997"
+    external:  true
+  - title:     "RFC 8174 — Ambiguity of Uppercase vs Lowercase in RFC 2119 Key Words"
+    locator:   "BCP 14, May 2017"
+    external:  true
 ---
 
 # Lexis Document Format Specification
@@ -81,6 +88,14 @@ Lexis differs from these in combining s-expression data representation
 mirroring), Common Lisp nativity, and an optional extension mechanism
 for ontological enrichment.
 
+### 1.3 Conventions
+
+The key words "MUST", "MUST NOT", "REQUIRED", "SHALL", "SHALL NOT",
+"SHOULD", "SHOULD NOT", "RECOMMENDED", "NOT RECOMMENDED", "MAY", and
+"OPTIONAL" in this document are to be interpreted as described in BCP 14
+(RFC 2119 and RFC 8174) when, and only when, they appear in all
+capitals, as shown here.
+
 
 ## 2. Required Core Format
 
@@ -121,7 +136,7 @@ by the distinguished symbol `@` as the first child of the tagged node:
 The `@` symbol cannot be a valid tag name (by convention), so its
 presence as the first child unambiguously signals an attribute list.
 
-Attributes may be written in two forms. The form is determined by
+Attributes MAY be written in two forms. The form is determined by
 the type of the first element after `@`:
 
 **Keyword plist form.** When the first element after `@` is a keyword
@@ -133,7 +148,7 @@ keyword keys and values:
   ...)
 ```
 
-Values may be strings, numbers, symbols, or nested s-expressions.
+Values MAY be strings, numbers, symbols, or nested s-expressions.
 
 **Association list form.** When the first element after `@` is a list,
 the attribute list is parsed as an association list of `(key value)`
@@ -150,7 +165,7 @@ The alist form is preferred when attribute values are themselves
 structured (lists, nested attributes).
 
 Both forms normalize to a canonical internal representation during
-processing. A conforming processor must accept both forms and treat
+processing. A conforming processor MUST accept both forms and treat
 them equivalently.
 
 A tagged node without attributes omits the `@` list entirely:
@@ -169,7 +184,7 @@ concatenated:
 (paragraph "This is one " "continuous paragraph.")
 ```
 
-Text nodes may contain inline markup patterns that are expanded during
+Text nodes MAY contain inline markup patterns that are expanded during
 a text processing pass (see Section 3).
 
 ### 2.4 Whitespace
@@ -189,9 +204,9 @@ a terminal renderer may preserve it).
 
 ## 3. Required Inline Markup
 
-Text strings within Lexis documents may contain lightweight inline
+Text strings within Lexis documents MAY contain lightweight inline
 markup patterns. These are expanded by a **text processing pass** into
-proper Lexis nodes before rendering. This pass is optional -- a
+proper Lexis nodes before rendering. This pass is OPTIONAL -- a
 processor that skips it simply treats the patterns as literal text.
 
 ### 3.1 Links
@@ -217,7 +232,7 @@ Examples:
 ```
 
 The `|` character separates display text from URI. If the display text
-is omitted, the processor may derive it from the URI (e.g., by
+is omitted, the processor MAY derive it from the URI (e.g., by
 resolving a Classic URI to its resource's title, or by using the
 final path component of a web URL).
 
@@ -266,7 +281,7 @@ text nodes and inline element nodes. Processing order within a string:
 ## 4. Required Tag Vocabulary
 
 The following tags constitute the core Lexis vocabulary. A conforming
-processor must understand all of these. Additional tags may be defined
+processor MUST understand all of these. Additional tags MAY be defined
 by extensions (see Section 5).
 
 ### 4.1 Document Structure
@@ -276,7 +291,7 @@ by extensions (see Section 5).
 Attributes:
 - `:title` (string) -- Document title.
 - `:author` (string or URI) -- Author name or identifier.
-- `:date` (string) -- Publication or creation date (ISO 8601 recommended).
+- `:date` (string) -- Publication or creation date (ISO 8601 RECOMMENDED).
 - `:language` (string) -- BCP 47 language tag (e.g., `"en"`, `"fr"`).
 - `:version` (string) -- Document version identifier.
 - `:rights` (string) -- Copyright or license statement.
@@ -299,7 +314,7 @@ Attributes:
 
 Children: zero or more block-level or inline nodes.
 
-Sections may nest. The heading level in rendered output is determined
+Sections MAY nest. The heading level in rendered output is determined
 by nesting depth (a top-level section renders as `<h2>` in HTML, a
 section within a section as `<h3>`, etc., with `<h1>` reserved for
 the document title).
@@ -414,7 +429,7 @@ Children: the definition body (inline and/or block-level nodes).
 ### 4.4 Inline Elements
 
 Inline elements appear within paragraphs and other text-containing
-nodes. They may contain text nodes and other inline elements (nesting
+nodes. They MAY contain text nodes and other inline elements (nesting
 is permitted via explicit s-expression syntax).
 
 **`emphasis`** -- Emphatic stress (typically rendered as italics).
@@ -554,7 +569,7 @@ Attributes:
 
 Children: the note content (inline and/or block-level nodes).
 
-Notes may appear inline within text. The renderer is responsible for
+Notes MAY appear inline within text. The renderer is responsible for
 extracting them to the appropriate position (bottom of page, end of
 section, end of document) based on `:kind` and output format.
 
@@ -570,15 +585,16 @@ section, end of document) based on `:kind` and output format.
 ### 5.1 Custom Tags
 
 Lexis is extensible via custom tags. Any symbol that is not part of the
-core vocabulary is treated as a custom tag. Conforming processors must
+core vocabulary is treated as a custom tag. Conforming processors MUST
 handle unknown tags gracefully by one of:
 
 1. Rendering the tag's children as if the tag were a generic container
    (pass-through rendering).
-2. Ignoring the tag and its children entirely.
+2. Ignoring the tag and its children entirely. This option is NOT
+   RECOMMENDED, and a renderer MUST NOT use it (Section 10.3).
 3. Signaling a warning and falling back to option 1 or 2.
 
-The recommended behavior is option 1 (pass-through), which ensures
+The RECOMMENDED behavior is option 1 (pass-through), which ensures
 that content is never silently lost.
 
 Custom tags follow the same syntax as core tags:
@@ -692,8 +708,8 @@ Examples:
   " in the current example.")
 ```
 
-A passthrough node may carry additional attributes beyond `:medium`.
-These have no defined meaning in the core specification but may be
+A passthrough node MAY carry additional attributes beyond `:medium`.
+These have no defined meaning in the core specification but MAY be
 used by individual renderers as hints. Common conventions include:
 
 - `:kind` — a semantic category (`:stylesheet`, `:script`, `:metadata`,
@@ -711,25 +727,25 @@ exactly as written. This is essential for stylesheet bodies, script
 sources, and any other content where those characters carry their own
 medium-specific meaning.
 
-**Aliases.** Processors may accept `pthru` as a synonym for
+**Aliases.** Processors MUST accept `pthru` as a synonym for
 `passthrough`. Both parse to the same node type.
 
 **Security.** Passthrough content is, by design, opaque content that
-the renderer emits without interpretation. Authors and processors must
+the renderer emits without interpretation. Authors and processors MUST
 treat passthrough nodes from untrusted sources with the same care they
 would extend to raw HTML, raw shell commands, or raw any-other-medium
 content. Renderers serving multi-tenant or user-generated documents
-should consider stripping passthrough nodes outright, sandboxing the
+SHOULD consider stripping passthrough nodes outright, sandboxing the
 target medium, or applying medium-specific content sanitization before
 emission.
 
-**Conformance.** A conforming processor must:
+**Conformance.** A conforming processor MUST:
 
 - Recognize the `passthrough` tag (and the `pthru` alias).
 - Preserve passthrough children verbatim without recursive Lexis parsing.
 - Skip inline-markup processing within passthrough content.
 
-A conforming renderer must:
+A conforming renderer MUST:
 
 - Examine the `:medium` attribute and emit passthrough content
   verbatim if and only if the renderer's target medium is listed.
@@ -808,7 +824,7 @@ the standard `classic:` to `https://` mapping).
 
 ### 6.3 Resource Embedding
 
-A Classic-aware renderer may expand `:classic:uri` references into
+A Classic-aware renderer MAY expand `:classic:uri` references into
 rich content at render time. For example, an author reference:
 
 ```lisp
@@ -825,7 +841,7 @@ fallback text.
 
 ### 6.4 Document-Level Classic Metadata
 
-The `document` node may carry Classic metadata identifying the document
+The `document` node MAY carry Classic metadata identifying the document
 as a Classic resource:
 
 ```lisp
@@ -846,7 +862,7 @@ lifecycle, authorship, and federation status.
 ## 7. Required Processing Model
 
 A Lexis document is processed through a pipeline of passes. Not all
-passes are required -- a minimal processor may skip the text processing
+passes are required -- a minimal processor MAY skip the text processing
 pass and render the raw s-expression tree directly.
 
 ### 7.1 Parse
@@ -875,7 +891,7 @@ Resolve cross-references and Classic URI references:
 - `classic-link` and `:classic:uri` references: resolve against a
   Classic triplestore (if available) to retrieve resource metadata.
 
-This pass may be skipped if no cross-references are present or if
+This pass MAY be skipped if no cross-references are present or if
 Classic integration is not active.
 
 ### 7.4 Rendering
@@ -912,6 +928,8 @@ how to handle these gaps.
 
 This section describes the expected rendering behavior for each major
 target format, focusing on cases where tags require adaptation.
+Sections 8.1 to 8.6 are informative guidance for each medium; Section
+8.7 is normative.
 
 ### 8.1 HTML
 
@@ -1127,7 +1145,7 @@ context is present for URI resolution.
 ### 8.7 General Principles for Renderers
 
 When a tag has no natural equivalent in the target medium, renderers
-should follow these principles in order of preference:
+SHOULD follow these principles in order of preference:
 
 1. **Approximate semantically.** Use the closest available construct
    in the target medium that preserves the tag's meaning (e.g.,
@@ -1142,8 +1160,8 @@ should follow these principles in order of preference:
    that would be lost (e.g., `web-link` URLs in print PDF), surface
    the metadata as visible text (footnotes, parenthetical references).
 
-4. **Never silently discard content.** A renderer may omit formatting
-   but must not omit text content or meaningful metadata without
+4. **Never silently discard content.** A renderer MAY omit formatting
+   but MUST NOT omit text content or meaningful metadata without
    signaling this to the user or document author.
 
 
@@ -1283,35 +1301,38 @@ should follow these principles in order of preference:
 
 ### 10.1 Conforming Document
 
-A conforming Lexis document:
+A conforming Lexis document MUST:
 
-- Is a well-formed s-expression readable by a standard Common Lisp
-  reader.
-- Has a `document` node as its root.
-- Uses only core vocabulary tags and registered extension tags (unknown
-  tags are permitted but should be documented).
-- Follows the attribute syntax defined in Section 2.2.
+- be a well-formed s-expression readable by a standard Common Lisp
+  reader;
+- have a `document` node as its root;
+- use only core vocabulary tags and registered extension tags;
+- follow the attribute syntax defined in Section 2.2.
+
+A document that uses unknown tags does not conform, but it is still a
+Lexis document: processors handle its unknown tags as Section 5.1
+requires, and its author SHOULD document them.
 
 ### 10.2 Conforming Processor
 
-A conforming Lexis processor:
+A conforming Lexis processor MUST:
 
-- Parses any conforming Lexis document without error.
-- Handles all core vocabulary tags defined in Section 4.
-- Handles unknown tags gracefully (Section 5.1) without data loss.
-- Handles unknown attribute namespaces by ignoring them.
-- Implements the text processing pass (Section 3) or documents that
-  it does not.
+- parse any conforming Lexis document without error;
+- handle all core vocabulary tags defined in Section 4;
+- handle unknown tags gracefully (Section 5.1) without data loss;
+- ignore unknown attribute namespaces;
+- implement the text processing pass (Section 3), or document that it
+  does not.
 
 ### 10.3 Conforming Renderer
 
-A conforming Lexis renderer:
+A conforming Lexis renderer MUST:
 
-- Is a conforming processor.
-- Produces output in at least one target format.
-- Renders all core vocabulary tags with semantically appropriate output
-  for its target format.
-- Renders unknown tags via pass-through (rendering their children).
+- be a conforming processor;
+- produce output in at least one target format;
+- render all core vocabulary tags with semantically appropriate output
+  for its target format;
+- render unknown tags via pass-through (rendering their children).
 
 
 ## 11. Conformance Walkthrough
@@ -1440,7 +1461,9 @@ Table: Core tags of Section 4 and whether the reference implementation supports 
 | Parsed and rendered to HTML | `document`, `section`, `paragraph`, `code-block`, `blockquote`, `unordered-list`, `ordered-list`, `item`, `image`, `figure`, `caption`, `emphasis`, `strong`, `code`, `strikethrough`, `web-link`, `classic-link`, `cross-ref`, `passthrough` |
 | Not implemented; parsed as unknown tags | `aside`, `definition-list`, `definition`, `underline`, `superscript`, `subscript`, `table`, `row`, `cell`, `note` |
 
-**What does not work yet.**
+**What does not work yet.** Because it does not handle every core tag
+(Section 4), the reference implementation is not yet a conforming
+processor or renderer under Section 10.
 
 - The attributes `:caption` on `code-block` and `image`, `:uri` on
   `blockquote`, and `:width` and `:height` on `image` are parsed but not
